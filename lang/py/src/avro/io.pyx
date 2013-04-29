@@ -58,7 +58,7 @@ class AvroTypeException(schema.AvroException):
   def __init__(self, expected_schema, datum):
     pretty_expected = json.dumps(json.loads(str(expected_schema)), indent=2)
     fail_msg = "The datum %s is not an example of the schema %s"\
-	       % (datum, pretty_expected)
+         % (datum, pretty_expected)
     schema.AvroException.__init__(self, fail_msg)
 
 class SchemaResolutionException(schema.AvroException):
@@ -314,7 +314,7 @@ def read_enum(stream, resolver_cache, writers_schema, readers_schema):
   index_of_symbol = read_int(stream)
   if index_of_symbol >= resolver_cache[key]['len']:
     fail_msg = "Can't access enum index %d for enum with %d symbols"\
-	       % (index_of_symbol, resolver_cache[key]['len'])
+         % (index_of_symbol, resolver_cache[key]['len'])
     raise SchemaResolutionException(fail_msg, writers_schema, readers_schema)
   read_symbol = writers_schema.symbols[index_of_symbol]
 
@@ -351,7 +351,7 @@ def read_array(stream, resolver_cache, writers_schema, readers_schema):
       block_size = read_long(stream)
     for i in xrange(block_count):
       read_items.append(read_data(stream, resolver_cache, writers_schema.items,
-				  readers_schema.items))
+          readers_schema.items))
     block_count = read_long(stream)
   return read_items
 
@@ -363,7 +363,7 @@ def skip_array(stream, resolver_cache, writers_schema):
       skip(stream, block_size)
     else:
       for i in xrange(block_count):
-	skip_data(stream, writers_schema.items)
+        skip_data(stream, writers_schema.items)
     block_count = read_long(stream)
 
 def read_map(stream, resolver_cache, writers_schema, readers_schema):
@@ -390,7 +390,7 @@ def read_map(stream, resolver_cache, writers_schema, readers_schema):
     for i in xrange(block_count):
       key = read_utf8(stream)
       read_items[key] = read_data(stream, resolver_cache, writers_schema.values,
-				  readers_schema.values)
+          readers_schema.values)
     block_count = read_long(stream)
   return read_items
 
@@ -402,8 +402,8 @@ def skip_map(stream, resolver_cache, writers_schema, readers_schema):
       skip(stream, block_size)
     else:
       for i in xrange(block_count):
-	skip_utf8(stream)
-	skip_data(stream, resolver_cache, writers_schema.values, readers_schema.values)
+        skip_utf8(stream)
+        skip_data(stream, resolver_cache, writers_schema.values, readers_schema.values)
     block_count = read_long(stream)
 
 def read_union(stream, resolver_cache, writers_schema, readers_schema):
@@ -417,7 +417,7 @@ def read_union(stream, resolver_cache, writers_schema, readers_schema):
   cdef int index_of_schema = int(read_long(stream))
   if index_of_schema >= resolver_cache[key]['len']:
     fail_msg = "Can't access branch index %d for union with %d branches"\
-	       % (index_of_schema, len(writers_schema.schemas))
+         % (index_of_schema, len(writers_schema.schemas))
     raise SchemaResolutionException(fail_msg, writers_schema, readers_schema)
   selected_writers_schema = writers_schema.schemas[index_of_schema]
 
@@ -430,7 +430,7 @@ def skip_union(stream, resolver_cache, writers_schema, readers_schema):
   index_of_schema = int(read_long(stream))
   if index_of_schema >= len(writers_schema.schemas):
     fail_msg = "Can't access branch index %d for union with %d branches"\
-	       % (index_of_schema, len(writers_schema.schemas))
+         % (index_of_schema, len(writers_schema.schemas))
     raise SchemaResolutionException(fail_msg, writers_schema)
   return skip_data(stream, resolver_cache, writers_schema.schemas[index_of_schema])
 
@@ -494,33 +494,33 @@ def is_schema_match(writers_schema, readers_schema):
   if 'union' in [w_type, r_type] or 'error_union' in [w_type, r_type]:
     return True
   elif (w_type in PRIMITIVE_TYPES and r_type in PRIMITIVE_TYPES
-	and w_type == r_type):
+        and w_type == r_type):
     return True
   elif (w_type == r_type == 'record' and
-	check_props(writers_schema, readers_schema,
-				['fullname'])):
+        check_props(writers_schema, readers_schema,
+                    ['fullname'])):
     return True
   elif (w_type == r_type == 'error' and
-	check_props(writers_schema, readers_schema,
-				['fullname'])):
+        check_props(writers_schema, readers_schema,
+                    ['fullname'])):
     return True
   elif (w_type == r_type == 'request'):
     return True
   elif (w_type == r_type == 'fixed' and
-	check_props(writers_schema, readers_schema,
-				['fullname', 'size'])):
+        check_props(writers_schema, readers_schema,
+                    ['fullname', 'size'])):
     return True
   elif (w_type == r_type == 'enum' and
-	check_props(writers_schema, readers_schema,
-				['fullname'])):
+        check_props(writers_schema, readers_schema,
+                    ['fullname'])):
     return True
   elif (w_type == r_type == 'map' and
-	check_props(writers_schema.values,
-				readers_schema.values, ['type'])):
+        check_props(writers_schema.values,
+                    readers_schema.values, ['type'])):
     return True
   elif (w_type == r_type == 'array' and
-	check_props(writers_schema.items,
-				readers_schema.items, ['type'])):
+        check_props(writers_schema.items,
+                    readers_schema.items, ['type'])):
     return True
 
   # Handle schema promotion
@@ -554,11 +554,11 @@ def resolve_schemas(resolver_cache, writers_schema, readers_schema):
     found_match = False
     for (i, s) in enumerate(readers_schema.schemas):
       try:
-	resolve_schemas(resolver_cache, writers_schema, s)
-	found_match = True
-	break
+        resolve_schemas(resolver_cache, writers_schema, s)
+        found_match = True
+        break
       except SchemaResolutionException:
-	continue
+        continue
     if not found_match:
       fail_msg = "Writer type not present in reader union."
       raise SchemaResolutionException(fail_msg, writers_schema, readers_schema)
@@ -604,9 +604,9 @@ def resolve_schemas(resolver_cache, writers_schema, readers_schema):
     found_one = False
     for s in writers_schema.schemas:
       try:
-	resolve_schemas(resolver_cache, s, readers_schema)
+        resolve_schemas(resolver_cache, s, readers_schema)
       except SchemaResolutionException:
-	continue
+        continue
       found_one = True
     if not found_one:
       fail_msg = "None of the writers schema are compatible with the readers schema."
@@ -622,11 +622,11 @@ def resolve_schemas(resolver_cache, writers_schema, readers_schema):
     for writers_field in writers_schema.fields:
       readers_field = readers_fields_dict.get(writers_field.name)
       if readers_field is not None:
-	resolver_cache[key]['read_or_skip'][writers_field.name] = 'read'
-	resolve_schemas(resolver_cache, writers_field.type, readers_field.type)
+        resolver_cache[key]['read_or_skip'][writers_field.name] = 'read'
+        resolve_schemas(resolver_cache, writers_field.type, readers_field.type)
       else:
-	resolver_cache[key]['read_or_skip'][writers_field.name] = 'skip'
-	resolve_skip_schema(resolver_cache, writers_field.type)
+        resolver_cache[key]['read_or_skip'][writers_field.name] = 'skip'
+        resolve_skip_schema(resolver_cache, writers_field.type)
 
 
     # compute default values
@@ -635,11 +635,11 @@ def resolve_schemas(resolver_cache, writers_schema, readers_schema):
     for field_name in reader_only_field_names:
       field = readers_fields_dict[field_name]
       if field.has_default:
-	field_val = read_default_value(field.type, field.default)
-	resolver_cache[key]['readers_default_values'][field.name] = field_val
+        field_val = read_default_value(field.type, field.default)
+        resolver_cache[key]['readers_default_values'][field.name] = field_val
       else:
-	fail_msg = 'No default value for field %s' % field_name
-	raise SchemaResolutionException(fail_msg, writers_schema, readers_schema)
+        fail_msg = 'No default value for field %s' % field_name
+        raise SchemaResolutionException(fail_msg, writers_schema, readers_schema)
   else:
     fail_msg = "Cannot read unknown schema type: %s" % w_type
     raise schema.AvroException(fail_msg)
@@ -886,13 +886,13 @@ def validate(expected_schema, datum):
     return isinstance(datum, str)
   elif schema_type == 'int':
     return ((isinstance(datum, int) or isinstance(datum, long))
-	    and INT_MIN_VALUE <= datum <= INT_MAX_VALUE)
+      and INT_MIN_VALUE <= datum <= INT_MAX_VALUE)
   elif schema_type == 'long':
     return ((isinstance(datum, int) or isinstance(datum, long))
-	    and LONG_MIN_VALUE <= datum <= LONG_MAX_VALUE)
+      and LONG_MIN_VALUE <= datum <= LONG_MAX_VALUE)
   elif schema_type in ['float', 'double']:
     return (isinstance(datum, int) or isinstance(datum, long)
-	    or isinstance(datum, float))
+      or isinstance(datum, float))
   elif schema_type == 'fixed':
     return isinstance(datum, str) and len(datum) == expected_schema.size
   elif schema_type == 'enum':
@@ -904,13 +904,13 @@ def validate(expected_schema, datum):
     return (isinstance(datum, dict) and
       False not in [isinstance(k, basestring) for k in datum.keys()] and
       False not in
-	[validate(expected_schema.values, v) for v in datum.values()])
+        [validate(expected_schema.values, v) for v in datum.values()])
   elif schema_type in ['union', 'error_union']:
     return True in [validate(s, datum) for s in expected_schema.schemas]
   elif schema_type in ['record', 'error', 'request']:
     return (isinstance(datum, dict) and
       False not in
-	[validate(f.type, datum.get(f.name)) for f in expected_schema.fields])
+        [validate(f.type, datum.get(f.name)) for f in expected_schema.fields])
 
 
 
@@ -924,7 +924,7 @@ class DatumWriter(object):
   def set_writers_schema(self, writers_schema):
     self._writers_schema = writers_schema
   writers_schema = property(lambda self: self._writers_schema,
-			    set_writers_schema)
+          set_writers_schema)
 
   def write(self, datum, stream):
     # validate datum
@@ -1000,7 +1000,7 @@ class DatumWriter(object):
     if len(datum) > 0:
       write_long(stream, len(datum))
       for item in datum:
-	self.write_data(writers_schema.items, item, stream)
+        self.write_data(writers_schema.items, item, stream)
     write_long(stream, 0)
 
   def write_map(self, writers_schema, datum, stream):
@@ -1021,8 +1021,8 @@ class DatumWriter(object):
     if len(datum) > 0:
       write_long(stream, len(datum))
       for key, val in datum.items():
-	write_utf8(stream, key)
-	self.write_data(writers_schema.values, val, stream)
+        write_utf8(stream, key)
+        self.write_data(writers_schema.values, val, stream)
     write_long(stream, 0)
 
   def write_union(self, writers_schema, datum, stream):
@@ -1035,7 +1035,7 @@ class DatumWriter(object):
     index_of_schema = -1
     for i, candidate_schema in enumerate(writers_schema.schemas):
       if validate(candidate_schema, datum):
-	index_of_schema = i
+        index_of_schema = i
     if index_of_schema < 0: raise AvroTypeException(writers_schema, datum)
 
     # write data
