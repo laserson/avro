@@ -114,16 +114,15 @@ def print_test_name(test_name):
 
 def write_datum(datum, writers_schema):
   writer = StringIO()
-  encoder = io.BinaryEncoder(writer)
   datum_writer = io.DatumWriter(writers_schema)
-  datum_writer.write(datum, encoder)
-  return writer, encoder, datum_writer
+  datum_writer.write(datum, writer)
+  return writer, datum_writer
 
-def read_datum(buffer, writers_schema, readers_schema=None):
+def read_datum(buffer, writers_schema, readers_schema):
+  schema_helper = {}
+  io.resolve_schemas(schema_helper, writers_schema, readers_schema)
   reader = StringIO(buffer.getvalue())
-  decoder = io.BinaryDecoder(reader)
-  datum_reader = io.DatumReader(writers_schema, readers_schema)
-  return datum_reader.read(decoder)
+  return io.read_data(reader, schema_helper, writers_schema, readers_schema)
 
 def check_binary_encoding(number_type):
   print_test_name('TEST BINARY %s ENCODING' % number_type.upper())
@@ -133,7 +132,7 @@ def check_binary_encoding(number_type):
     print 'Correct Encoding: %s' % hex_encoding
 
     writers_schema = schema.parse('"%s"' % number_type.lower())
-    writer, encoder, datum_writer = write_datum(datum, writers_schema)
+    writer, datum_writer = write_datum(datum, writers_schema)
     writer.seek(0)
     hex_val = avro_hexlify(writer)
 
@@ -151,17 +150,17 @@ def check_skip_number(number_type):
 
     # write the value to skip and a known value
     writers_schema = schema.parse('"%s"' % number_type.lower())
-    writer, encoder, datum_writer = write_datum(value_to_skip, writers_schema)
-    datum_writer.write(VALUE_TO_READ, encoder)
+    writer, datum_writer = write_datum(value_to_skip, writers_schema)
+    datum_writer.write(VALUE_TO_READ, writer)
 
     # skip the value
     reader = StringIO(writer.getvalue())
-    decoder = io.BinaryDecoder(reader)
-    decoder.skip_long()
+    io.skip_long(reader)
 
     # read data from string buffer
-    datum_reader = io.DatumReader(writers_schema)
-    read_value = datum_reader.read(decoder)
+    schema_helper = {}
+    io.resolve_schemas(schema_helper, writers_schema, writers_schema)
+    read_value = io.read_data(reader, schema_helper, writers_schema, writers_schema)
 
     print 'Read Value: %d' % read_value
     if read_value == VALUE_TO_READ: correct += 1
@@ -192,8 +191,8 @@ class TestIO(unittest.TestCase):
       print 'Datum: %s' % datum
 
       writers_schema = schema.parse(example_schema)
-      writer, encoder, datum_writer = write_datum(datum, writers_schema)
-      round_trip_datum = read_datum(writer, writers_schema)
+      writer, datum_writer = write_datum(datum, writers_schema)
+      round_trip_datum = read_datum(writer, writers_schema, writers_schema)
 
       print 'Round Trip Datum: %s' % round_trip_datum
       if datum == round_trip_datum: correct += 1
@@ -234,7 +233,7 @@ class TestIO(unittest.TestCase):
       datum_to_write = 219
       for rs in promotable_schemas[i + 1:]:
         readers_schema = schema.parse(rs)
-        writer, enc, dw = write_datum(datum_to_write, writers_schema)
+	writer, dw = write_datum(datum_to_write, writers_schema)
         datum_read = read_datum(writer, writers_schema, readers_schema)
         print 'Writer: %s Reader: %s' % (writers_schema, readers_schema)
         print 'Datum Read: %s' % datum_read
@@ -252,11 +251,12 @@ class TestIO(unittest.TestCase):
       {"type": "enum", "name": "Test",
        "symbols": ["BAR", "BAZ"]}""")
 
-    writer, encoder, datum_writer = write_datum(datum_to_write, writers_schema)
+    writer, datum_writer = write_datum(datum_to_write, writers_schema)
     reader = StringIO(writer.getvalue())
-    decoder = io.BinaryDecoder(reader)
-    datum_reader = io.DatumReader(writers_schema, readers_schema)
-    self.assertRaises(io.SchemaResolutionException, datum_reader.read, decoder)
+    schema_helper = {}
+    io.resolve_schemas(schema_helper, writers_schema, readers_schema)
+    self.assertRaises(io.SchemaResolutionException, io.read_data, reader,
+		      schema_helper, writers_schema, readers_schema)
 
   def test_default_value(self):
     print_test_name('TEST DEFAULT VALUE')
@@ -271,7 +271,7 @@ class TestIO(unittest.TestCase):
         """ % (field_type, default_json))
       datum_to_read = {'H': default_datum}
 
-      writer, encoder, datum_writer = write_datum(datum_to_write, writers_schema)
+      writer, datum_writer = write_datum(datum_to_write, writers_schema)
       datum_read = read_datum(writer, writers_schema, readers_schema)
       print 'Datum Read: %s' % datum_read
       if datum_to_read == datum_read: correct += 1
@@ -286,11 +286,11 @@ class TestIO(unittest.TestCase):
       {"type": "record", "name": "Test",
        "fields": [{"name": "H", "type": "int"}]}""")
 
-    writer, encoder, datum_writer = write_datum(datum_to_write, writers_schema)
+    writer, datum_writer = write_datum(datum_to_write, writers_schema)
     reader = StringIO(writer.getvalue())
-    decoder = io.BinaryDecoder(reader)
-    datum_reader = io.DatumReader(writers_schema, readers_schema)
-    self.assertRaises(io.SchemaResolutionException, datum_reader.read, decoder)
+    schema_helper = {}
+    self.assertRaises(io.SchemaResolutionException, io.resolve_schemas,
+		      schema_helper, writers_schema, readers_schema)
 
   def test_projection(self):
     print_test_name('TEST PROJECTION')
@@ -303,7 +303,9 @@ class TestIO(unittest.TestCase):
                   {"name": "F", "type": "int"}]}""")
     datum_to_read = {'E': 5, 'F': 6}
 
-    writer, encoder, datum_writer = write_datum(datum_to_write, writers_schema)
+    writer, datum_writer = write_datum(datum_to_write, writers_schema)
+    # import pdb
+    # pdb.set_trace()
     datum_read = read_datum(writer, writers_schema, readers_schema)
     print 'Datum Read: %s' % datum_read
     self.assertEquals(datum_to_read, datum_read)
@@ -319,7 +321,7 @@ class TestIO(unittest.TestCase):
                   {"name": "E", "type": "int"}]}""")
     datum_to_read = {'E': 5, 'F': 6}
 
-    writer, encoder, datum_writer = write_datum(datum_to_write, writers_schema)
+    writer, datum_writer = write_datum(datum_to_write, writers_schema)
     datum_read = read_datum(writer, writers_schema, readers_schema)
     print 'Datum Read: %s' % datum_read
     self.assertEquals(datum_to_read, datum_read)

@@ -87,8 +87,7 @@ class TestDataFile(unittest.TestCase):
 
         # read data in binary from file
         reader = open(FILENAME, 'rb')
-        datum_reader = io.DatumReader()
-        dfr = datafile.DataFileReader(reader, datum_reader)
+	dfr = datafile.DataFileReader(reader)
         round_trip_data = []
         for datum in dfr:
           round_trip_data.append(datum)
@@ -135,8 +134,7 @@ class TestDataFile(unittest.TestCase):
 
         # read data in binary from file
         reader = open(FILENAME, 'rb')
-        datum_reader = io.DatumReader()
-        dfr = datafile.DataFileReader(reader, datum_reader)
+	dfr = datafile.DataFileReader(reader)
         appended_data = []
         for datum in dfr:
           appended_data.append(datum)
@@ -169,8 +167,7 @@ class TestDataFile(unittest.TestCase):
     # Test the reader with a 'with' statement.
     datums = []
     reader = open(FILENAME, 'rb')
-    datum_reader = io.DatumReader()
-    with datafile.DataFileReader(reader, datum_reader) as dfr:
+    with datafile.DataFileReader(reader) as dfr:
       for datum in dfr:
         datums.append(datum)
     self.assertTrue(reader.closed)
@@ -190,8 +187,7 @@ class TestDataFile(unittest.TestCase):
     # Test the reader with a 'with' statement.
     datums = []
     reader = open(FILENAME, 'rb')
-    datum_reader = io.DatumReader()
-    with datafile.DataFileReader(reader, datum_reader) as dfr:
+    with datafile.DataFileReader(reader) as dfr:
       self.assertEquals('foo', dfr.get_meta('test.string'))
       self.assertEquals('1', dfr.get_meta('test.number'))
       for datum in dfr:

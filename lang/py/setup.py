@@ -21,6 +21,9 @@ except ImportError:
   from distutils.core import setup
 from sys import version_info
 
+from distutils.extension import Extension
+from Cython.Distutils import build_ext
+
 install_requires = []
 if version_info[:2] <= (2, 5):
     install_requires.append('simplejson >= 2.0.9')
@@ -31,6 +34,9 @@ setup(
   packages = ['avro',],
   package_dir = {'avro': 'src/avro'},
   scripts = ["./scripts/avro"],
+
+  cmdclass = {'build_ext': build_ext},
+  ext_modules = [Extension('avro.io', ['src/avro/io.pyx'])],
 
   # Project uses simplejson, so ensure that it gets installed or upgraded
   # on the target machine

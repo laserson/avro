@@ -124,6 +124,7 @@ class Schema(object):
     self.set_prop('type', type)
     self.type = type
     self._props.update(other_props or {})
+    self.fingerprint = ""
 
   # Read-only properties dict. Printing schemas
   # creates JSON properties directly from this dict. 
@@ -301,6 +302,8 @@ class NamedSchema(Schema):
     # Store full name as calculated from name, namespace
     self._fullname = new_name.fullname
     
+    self.fingerprint = self.fullname
+
   def name_ref(self, names):
     if self.namespace == names.default_namespace:
       return self.name
@@ -394,6 +397,7 @@ class PrimitiveSchema(Schema):
     Schema.__init__(self, type)
 
     self.fullname = type
+    self.fingerprint = self.fullname
 
   def to_json(self, names=None):
     if len(self.props) == 1:
@@ -420,6 +424,8 @@ class FixedSchema(NamedSchema):
 
     # Add class members
     self.set_prop('size', size)
+
+    self.fingerprint = "fixed[%s,%i]" % (self.fullname, size)
 
   # read-only properties
   size = property(lambda self: self.get_prop('size'))
@@ -455,6 +461,8 @@ class EnumSchema(NamedSchema):
     # Add class members
     self.set_prop('symbols', symbols)
     if doc is not None: self.set_prop('doc', doc)
+
+    self.fingerprint = "enum[%s][%s]" % (self.fullname, ','.join(symbols))
 
   # read-only properties
   symbols = property(lambda self: self.get_prop('symbols'))
@@ -493,6 +501,8 @@ class ArraySchema(Schema):
 
     self.set_prop('items', items_schema)
 
+    self.fingerprint = "array[%s]" % items_schema.fingerprint
+
   # read-only properties
   items = property(lambda self: self.get_prop('items'))
 
@@ -524,6 +534,8 @@ class MapSchema(Schema):
         raise SchemaParseException(fail_msg)
 
     self.set_prop('values', values_schema)
+
+    self.fingerprint = "map[%s]" % values_schema.fingerprint
 
   # read-only properties
   values = property(lambda self: self.get_prop('values'))
@@ -571,6 +583,12 @@ class UnionSchema(Schema):
       else:
         schema_objects.append(new_schema)
     self._schemas = schema_objects
+
+    fingerprints = []
+    for (i, s) in enumerate(schema_objects):
+      fingerprints.append(str(i+1))
+      fingerprints.append(s.fingerprint)
+    self.fingerprint = "union[%s]" % ','.join(fingerprints)
 
   # read-only properties
   schemas = property(lambda self: self._schemas)
@@ -664,6 +682,11 @@ class RecordSchema(NamedSchema):
 
     if schema_type == 'record':
       names.default_namespace = old_default
+
+    field_fingerprints = []
+    for f in self.fields:
+      field_fingerprints.append("[%s][%s]" % (f.name, f.type.fingerprint))
+    self.fingerprint = "record[%s]{%s}" % (self.fullname, ','.join(field_fingerprints))
 
   # read-only properties
   fields = property(lambda self: self.get_prop('fields'))
